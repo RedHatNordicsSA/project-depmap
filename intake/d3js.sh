@@ -1,6 +1,5 @@
 #!/bin/bash
-# Generate json nm dependency info for d3js
-# Magnus Glantz, sudo@redhat.com, 2020
+# Depricated?
 
 # Prereqs
 if ! whoami|grep root >/dev/null
@@ -52,45 +51,47 @@ then
 			do	
 				if file $file|grep "ELF 64" >/dev/null
 				then
-					for syscall in $(nm $file 2>/dev/null|grep U|awk '{ print $2 }')
+					filemd5=$(md5sum $file|awk '{ print $1 }')
+					for syscall in $(nm --with-symbol-versions $file 2>/dev/null|grep U|awk '{ print $2 }')
 					do
-						if echo $syscalls|grep "$syscall" >/dev/null
+						if echo $syscalls|grep -w "$(echo $syscall|cut -d'@' -f1)" >/dev/null
 						then
-							echo "$therpm $syscall"
+							echo "$filemd5 $syscall"
 						fi	
 					done
-					for syscall in $(nm -D $file 2>/dev/null|grep U|awk '{ print $2 }')
+					for syscall in $(nm -D --with-symbol-versions $file 2>/dev/null|grep U|awk '{ print $2 }')
 					do
-						if echo $syscalls|grep "$syscall" >/dev/null
+						if echo $syscalls|grep -w "$(echo $syscall|cut -d'@' -f1)" >/dev/null
 						then
-							echo "$therpm $syscall";
+							echo "$filemd5 $syscall";
 						fi
 					done
 				fi
 			done
-		done|sort -u|tr '[:upper:]' '[:lower:]'|grep -v "@"|grep -vw "[a-z]"|grep -v " _" >$1.all.raw
+		done|sort -u|tr '[:upper:]' '[:lower:]'|grep '@'|grep -vw "[a-z]"|grep -v " _" >$1.all.raw
 	elif [ "$APK" == "yes" -o "$APTGET" == "yes" ]
 	then
 		for file in $(find . -type f|grep -v kernel)
 		do
 				if file $file|grep "ELF 64" >/dev/null
 				then
-					for syscall in $(nm $file 2>/dev/null|grep U|awk '{ print $2 }')
+					filemd5=$(md5sum $file|awk '{ print $1 }')
+					for syscall in $(nm --with-symbol-versions $file 2>/dev/null|grep U|awk '{ print $2 }')
 					do
-						if echo $syscalls|grep "$syscall" >/dev/null
+						if echo $syscalls|grep "$(echo $syscall|cut -d'@' -f1)" >/dev/null
 						then
-							echo "$file $syscall"
+							echo "$filemd5 $syscall"
 						fi
 					done
-					for syscall in $(nm -D $file 2>/dev/null|grep U|awk '{ print $2 }')
+					for syscall in $(nm -D --with-symbol-versions $file 2>/dev/null|grep U|awk '{ print $2 }')
 					do
-						if echo $syscalls|grep "$syscall" >/dev/null
+						if echo $syscalls|grep "$(echo $syscall|cut -d'@' -f1)" >/dev/null
 						then
-							echo "$file $syscall";
+							echo "$filemd5 $syscall";
 						fi
 					done
 				fi
-		done|sort -u|tr '[:upper:]' '[:lower:]'|grep -v "@"|grep -vw "[a-z]"|grep -v " _" >$1.all.raw
+		done|sort -u|tr '[:upper:]' '[:lower:]'|grep '@'|grep -vw "[a-z]"|grep -v " _" >$1.all.raw
 	fi
 fi
 
